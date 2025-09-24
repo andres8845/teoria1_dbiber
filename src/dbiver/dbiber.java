@@ -5,6 +5,11 @@
 package dbiver;
 
 
+import com.mxgraph.layout.hierarchical.mxHierarchicalLayout;
+import com.mxgraph.layout.mxFastOrganicLayout;
+import com.mxgraph.layout.mxOrganicLayout;
+import com.mxgraph.swing.mxGraphComponent;
+import com.mxgraph.view.mxGraph;
 import java.awt.Color;
 import java.awt.Image;
 import java.awt.List;
@@ -17,6 +22,9 @@ import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.DefaultListModel;
@@ -25,6 +33,7 @@ import javax.swing.JTree;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreePath;
 
 
@@ -67,6 +76,7 @@ public class dbiber extends javax.swing.JFrame {
         jScrollPane2.setVisible(false);
         DDL.setVisible(false);
         ddl_texto.setVisible(false);
+        mr_texto.setVisible(false);
         
         ponerEnLista();
         
@@ -87,6 +97,7 @@ public class dbiber extends javax.swing.JFrame {
         Image imag = reconnectz.getImage().getScaledInstance(30, 30, java.awt.Image.SCALE_SMOOTH);
         reconnect.setIcon(new ImageIcon(imag));
         reconnect.setBorder(null);
+        reconnect.setVisible(false);
         
         //icono desconectar
         ImageIcon disconnectz = new ImageIcon(getClass().getResource("/images/disconnect.png"));
@@ -119,6 +130,11 @@ public class dbiber extends javax.swing.JFrame {
         ddl_imagen.setIcon(new ImageIcon(dd));
         ddl_imagen.setBorder(null);
         
+        //icono modelo relacional
+        ImageIcon mr = new ImageIcon(getClass().getResource("/images/modelo_relacional.png"));
+        Image mrr = mr.getImage().getScaledInstance(30, 30, java.awt.Image.SCALE_SMOOTH);
+        relational_model.setIcon(new ImageIcon(mrr));
+        relational_model.setBorder(null);
         try{
             Class.forName("interbase.interclient.Driver");
         }catch(ClassNotFoundException e){
@@ -155,6 +171,7 @@ public class dbiber extends javax.swing.JFrame {
         play_button = new javax.swing.JLabel();
         objetoz = new javax.swing.JLabel();
         ddl_imagen = new javax.swing.JLabel();
+        relational_model = new javax.swing.JLabel();
         nueva_label = new javax.swing.JLabel();
         conectarse_label = new javax.swing.JLabel();
         reconectarse_label = new javax.swing.JLabel();
@@ -176,6 +193,7 @@ public class dbiber extends javax.swing.JFrame {
         object = new javax.swing.JLabel();
         ddl_texto = new javax.swing.JLabel();
         jPanel2 = new javax.swing.JPanel();
+        mr_texto = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         getContentPane().setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
@@ -350,6 +368,19 @@ public class dbiber extends javax.swing.JFrame {
         });
         jPanel1.add(ddl_imagen, new org.netbeans.lib.awtextra.AbsoluteConstraints(360, 0, 40, 40));
 
+        relational_model.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                relational_modelMouseClicked(evt);
+            }
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                relational_modelMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                relational_modelMouseExited(evt);
+            }
+        });
+        jPanel1.add(relational_model, new org.netbeans.lib.awtextra.AbsoluteConstraints(450, 0, 40, 40));
+
         pantalla_inicio.add(jPanel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, 760, 40));
 
         nueva_label.setBackground(new java.awt.Color(255, 255, 255));
@@ -459,6 +490,12 @@ public class dbiber extends javax.swing.JFrame {
         ddl_texto.setText("Mostrar DDL");
         pantalla_inicio.add(ddl_texto, new org.netbeans.lib.awtextra.AbsoluteConstraints(340, 40, -1, -1));
         pantalla_inicio.add(jPanel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 170, -1, -1));
+
+        mr_texto.setBackground(new java.awt.Color(255, 255, 255));
+        mr_texto.setFont(new java.awt.Font("Yu Gothic UI Semibold", 0, 14)); // NOI18N
+        mr_texto.setForeground(new java.awt.Color(255, 255, 255));
+        mr_texto.setText("Modelo Relacional");
+        pantalla_inicio.add(mr_texto, new org.netbeans.lib.awtextra.AbsoluteConstraints(410, 40, -1, -1));
 
         getContentPane().add(pantalla_inicio, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, 760, 540));
 
@@ -1062,6 +1099,105 @@ public class dbiber extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_combo2ActionPerformed
 
+    private void relational_modelMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_relational_modelMouseEntered
+        relational_model.setBorder(BorderFactory.createLineBorder(new Color(100, 180, 255), 2));
+        mr_texto.setVisible(true);
+    }//GEN-LAST:event_relational_modelMouseEntered
+
+    private void relational_modelMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_relational_modelMouseExited
+        relational_model.setBorder(null);
+        mr_texto.setVisible(false);
+    }//GEN-LAST:event_relational_modelMouseExited
+
+    private void relational_modelMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_relational_modelMouseClicked
+        
+        try (Connection conn = DriverManager.getConnection(url, user, password)) {
+            generarModeloRelacional(jTree1, conn);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        
+    }//GEN-LAST:event_relational_modelMouseClicked
+
+    public void generarModeloRelacional(JTree jTree1, Connection conn) {
+       mxGraph graph = new mxGraph();
+        Object parent = graph.getDefaultParent();
+
+        graph.getModel().beginUpdate();
+        try {
+            Map<String, Object> mapaTablas = new HashMap<>();
+
+            // Tomar el nodo raíz del JTree
+            DefaultMutableTreeNode root = (DefaultMutableTreeNode) jTree1.getModel().getRoot();
+            Enumeration<?> nodos = root.children();
+
+            while (nodos.hasMoreElements()) {
+                DefaultMutableTreeNode nodo = (DefaultMutableTreeNode) nodos.nextElement();
+
+                // Solo nos interesan las "Tablas"
+                if (nodo.toString().equals("Tablas")) {
+                    Enumeration<?> tablas = nodo.children();
+
+                    while (tablas.hasMoreElements()) {
+                        DefaultMutableTreeNode nodoTabla = (DefaultMutableTreeNode) tablas.nextElement();
+                        String nombreTabla = nodoTabla.toString();
+
+                        // Construir etiqueta con columnas
+                        StringBuilder label = new StringBuilder(nombreTabla);
+                        Enumeration<?> columnas = nodoTabla.children();
+                        while (columnas.hasMoreElements()) {
+                            DefaultMutableTreeNode col = (DefaultMutableTreeNode) columnas.nextElement();
+                            label.append("\n").append(col.toString());
+                        }
+
+                        // Crear nodo visual en el diagrama (sin preocuparnos por x,y)
+                        Object v1 = graph.insertVertex(parent, null, label.toString(), 20, 20, 180, 200);
+                        mapaTablas.put(nombreTabla, v1);
+                    }
+                }
+            }
+
+            // Dibujar relaciones con las Foreign Keys
+            DatabaseMetaData meta = conn.getMetaData();
+            for (String tabla : mapaTablas.keySet()) {
+                ResultSet fk = meta.getImportedKeys(null, null, tabla);
+                while (fk.next()) {
+                    String pkTable = fk.getString("PKTABLE_NAME"); // tabla referenciada
+                    if (mapaTablas.containsKey(pkTable)) {
+                        graph.insertEdge(parent, null,
+                                fk.getString("FKCOLUMN_NAME") + " → " + fk.getString("PKCOLUMN_NAME"),
+                                mapaTablas.get(tabla),
+                                mapaTablas.get(pkTable));
+                    }
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            graph.getModel().endUpdate();
+        }
+
+        //layout
+        mxFastOrganicLayout layout = new mxFastOrganicLayout(graph);
+        layout.setForceConstant(120);//separacion entre tablas
+        layout.execute(parent);
+
+        // Mostrar en JFrame
+        mxGraphComponent graphComponent = new mxGraphComponent(graph);
+        JFrame frame = new JFrame("Modelo Relacional");
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        frame.getContentPane().add(graphComponent);
+        frame.setSize(1200, 800);
+        frame.setVisible(true);
+    }
+    
+
+    
+    
+    
+    
+    
     /**
      * @param args the command line arguments
      */
@@ -1107,6 +1243,7 @@ public class dbiber extends javax.swing.JFrame {
     private javax.swing.JLabel las;
     private javax.swing.JLabel las1;
     private javax.swing.JLabel las2;
+    private javax.swing.JLabel mr_texto;
     private javax.swing.JLabel new_connection;
     private javax.swing.JLabel nueva_label;
     private javax.swing.JLabel object;
@@ -1115,6 +1252,7 @@ public class dbiber extends javax.swing.JFrame {
     private javax.swing.JLabel play_button;
     private javax.swing.JLabel reconectarse_label;
     private javax.swing.JLabel reconnect;
+    private javax.swing.JLabel relational_model;
     private javax.swing.JLabel resultados;
     private javax.swing.JTextArea scrip;
     private javax.swing.JScrollPane scripx;
