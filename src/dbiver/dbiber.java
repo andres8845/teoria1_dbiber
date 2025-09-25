@@ -4,7 +4,8 @@
  */
 package dbiver;
 
-
+import java.util.Set;
+import java.util.HashSet;
 import com.mxgraph.layout.hierarchical.mxHierarchicalLayout;
 import com.mxgraph.layout.mxFastOrganicLayout;
 import com.mxgraph.layout.mxOrganicLayout;
@@ -77,6 +78,7 @@ public class dbiber extends javax.swing.JFrame {
         DDL.setVisible(false);
         ddl_texto.setVisible(false);
         mr_texto.setVisible(false);
+        migrar_txt.setVisible(false);
         
         ponerEnLista();
         
@@ -135,8 +137,15 @@ public class dbiber extends javax.swing.JFrame {
         Image mrr = mr.getImage().getScaledInstance(30, 30, java.awt.Image.SCALE_SMOOTH);
         relational_model.setIcon(new ImageIcon(mrr));
         relational_model.setBorder(null);
+        
+        //icono migracion
+        ImageIcon migrar = new ImageIcon(getClass().getResource("/images/mig.png"));
+        Image migrarz = migrar.getImage().getScaledInstance(30, 30, java.awt.Image.SCALE_SMOOTH);
+        migraxion.setIcon(new ImageIcon(migrarz));
+        migraxion.setBorder(null);
         try{
             Class.forName("interbase.interclient.Driver");
+            Class.forName("org.postgresql.Driver"); 
         }catch(ClassNotFoundException e){
             System.out.println("Error al conectar con el driver : " + e.getCause());
         }
@@ -172,6 +181,7 @@ public class dbiber extends javax.swing.JFrame {
         objetoz = new javax.swing.JLabel();
         ddl_imagen = new javax.swing.JLabel();
         relational_model = new javax.swing.JLabel();
+        migraxion = new javax.swing.JLabel();
         nueva_label = new javax.swing.JLabel();
         conectarse_label = new javax.swing.JLabel();
         reconectarse_label = new javax.swing.JLabel();
@@ -194,6 +204,7 @@ public class dbiber extends javax.swing.JFrame {
         ddl_texto = new javax.swing.JLabel();
         jPanel2 = new javax.swing.JPanel();
         mr_texto = new javax.swing.JLabel();
+        migrar_txt = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         getContentPane().setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
@@ -381,6 +392,19 @@ public class dbiber extends javax.swing.JFrame {
         });
         jPanel1.add(relational_model, new org.netbeans.lib.awtextra.AbsoluteConstraints(450, 0, 40, 40));
 
+        migraxion.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                migraxionMouseClicked(evt);
+            }
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                migraxionMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                migraxionMouseExited(evt);
+            }
+        });
+        jPanel1.add(migraxion, new org.netbeans.lib.awtextra.AbsoluteConstraints(650, 0, 40, 40));
+
         pantalla_inicio.add(jPanel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, 760, 40));
 
         nueva_label.setBackground(new java.awt.Color(255, 255, 255));
@@ -496,6 +520,11 @@ public class dbiber extends javax.swing.JFrame {
         mr_texto.setForeground(new java.awt.Color(255, 255, 255));
         mr_texto.setText("Modelo Relacional");
         pantalla_inicio.add(mr_texto, new org.netbeans.lib.awtextra.AbsoluteConstraints(410, 40, -1, -1));
+
+        migrar_txt.setFont(new java.awt.Font("Yu Gothic UI Semibold", 0, 14)); // NOI18N
+        migrar_txt.setForeground(new java.awt.Color(255, 255, 255));
+        migrar_txt.setText("Migrar a Postgre");
+        pantalla_inicio.add(migrar_txt, new org.netbeans.lib.awtextra.AbsoluteConstraints(620, 40, -1, -1));
 
         getContentPane().add(pantalla_inicio, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, 760, 540));
 
@@ -1119,6 +1148,175 @@ public class dbiber extends javax.swing.JFrame {
         
     }//GEN-LAST:event_relational_modelMouseClicked
 
+    private void migraxionMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_migraxionMouseEntered
+        migraxion.setBorder(BorderFactory.createLineBorder(new Color(100, 180, 255), 2));
+        migrar_txt.setVisible(true);
+    }//GEN-LAST:event_migraxionMouseEntered
+
+    private void migraxionMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_migraxionMouseExited
+        migraxion.setBorder(null);
+        migrar_txt.setVisible(false);
+    }//GEN-LAST:event_migraxionMouseExited
+
+    private void migraxionMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_migraxionMouseClicked
+        try {
+            migrarInterbaseToPostgres();
+        } catch (SQLException ex) {
+            Logger.getLogger(dbiber.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }//GEN-LAST:event_migraxionMouseClicked
+
+    
+    String pgUrl = "jdbc:postgresql://localhost:5432/migracion";
+    String pgUser = "postgres";
+    String pgPass = "clave123";
+    
+
+    public void migrarInterbaseToPostgres() throws SQLException {
+        Connection connIB = DriverManager.getConnection(url, user, password);
+        Connection connPG = DriverManager.getConnection(pgUrl, pgUser, pgPass);
+        Statement stIB = connIB.createStatement();
+        Statement stPG = connPG.createStatement();
+
+        DatabaseMetaData metaPG = connPG.getMetaData();
+
+        ResultSet rsTablas = stIB.executeQuery("SELECT rdb$relation_name FROM rdb$relations WHERE rdb$system_flag = 0 AND rdb$view_blr IS NULL");
+
+        while (rsTablas.next()) {
+            String tabla = rsTablas.getString(1).trim().toLowerCase();
+
+            //columnas de InterBase
+            ArrayList<String> cols = new ArrayList<>();
+            ResultSet rsCols = connIB.getMetaData().getColumns(null, null, tabla.toUpperCase(), "%");
+            while (rsCols.next()) {
+                String col = rsCols.getString("COLUMN_NAME").trim().toLowerCase();
+                String tipoIB = rsCols.getString("TYPE_NAME").trim().toUpperCase();
+                int size = rsCols.getInt("COLUMN_SIZE");
+                int dec = rsCols.getInt("DECIMAL_DIGITS");
+
+                String tipoPG = mapTipo(tipoIB, size, dec);
+                cols.add("\"" + col + "\" " + tipoPG);
+            }
+
+            String ddl = "CREATE TABLE IF NOT EXISTS " + tabla + " (" + String.join(", ", cols) + ");";
+
+            stPG.executeUpdate(ddl);
+
+            //revisar columnas faltantes
+            ResultSet rsColsPG = metaPG.getColumns(null, null, tabla, "%");
+            Set<String> columnasPG = new HashSet<>();
+            while (rsColsPG.next()) {
+                columnasPG.add(rsColsPG.getString("COLUMN_NAME").toLowerCase());
+            }
+
+            ResultSet rsColsIB = connIB.getMetaData().getColumns(null, null, tabla.toUpperCase(), "%");
+            while (rsColsIB.next()) {
+                String col = rsColsIB.getString("COLUMN_NAME").trim().toLowerCase();
+                String tipoIB = rsColsIB.getString("TYPE_NAME").trim().toUpperCase();
+                int size = rsColsIB.getInt("COLUMN_SIZE");
+                int dec = rsColsIB.getInt("DECIMAL_DIGITS");
+
+                String tipoPG = mapTipo(tipoIB, size, dec);
+
+                if (!columnasPG.contains(col)) {
+                    String alter = "ALTER TABLE \"" + tabla + "\" ADD COLUMN \"" + col + "\" " + tipoPG + ";";
+                    stPG.executeUpdate(alter);
+                }
+            }
+        }
+
+        ResultSet rsConstraints = stIB.executeQuery(
+            "SELECT rc.rdb$constraint_name, rc.rdb$constraint_type, rc.rdb$relation_name, seg.rdb$field_name, " +
+            "refc.rdb$const_name_uq, rc2.rdb$relation_name AS ref_table " +
+            "FROM rdb$relation_constraints rc " +
+            "INNER JOIN rdb$index_segments seg ON rc.rdb$index_name = seg.rdb$index_name " +
+            "LEFT JOIN rdb$ref_constraints refc ON rc.rdb$constraint_name = refc.rdb$constraint_name " +
+            "LEFT JOIN rdb$relation_constraints rc2 ON refc.rdb$const_name_uq = rc2.rdb$constraint_name " +
+            "WHERE rc.rdb$constraint_type IN ('PRIMARY KEY', 'FOREIGN KEY')"
+        );
+
+        while (rsConstraints.next()) {
+            String constraintName = rsConstraints.getString("rdb$constraint_name").trim().toLowerCase();
+            String tipo = rsConstraints.getString("rdb$constraint_type").trim();
+            String tabla = rsConstraints.getString("rdb$relation_name").trim().toLowerCase();
+            String columna = rsConstraints.getString("rdb$field_name").trim().toLowerCase();
+
+            String checkConstraint =
+                "SELECT 1 FROM information_schema.table_constraints " +
+                "WHERE constraint_name = '" + constraintName + "' AND table_name = '" + tabla + "'";
+            ResultSet rsCheckCons = stPG.executeQuery(checkConstraint);
+
+            if (!rsCheckCons.next()) {
+                if (tipo.equals("PRIMARY KEY")) {
+                    String ddlPK = "ALTER TABLE \"" + tabla + "\"" +
+                                   " ADD CONSTRAINT \"" + constraintName + "\"" +
+                                   " PRIMARY KEY (\"" + columna + "\");";
+                    stPG.executeUpdate(ddlPK);
+
+                } else if (tipo.equals("FOREIGN KEY")) {
+                    String refTable = rsConstraints.getString("ref_table");
+                    if (refTable != null) {
+                        refTable = refTable.trim().toLowerCase();
+                        String ddlFK = "ALTER TABLE \"" + tabla + "\"" +
+                                       " ADD CONSTRAINT \"" + constraintName + "\"" +
+                                       " FOREIGN KEY (\"" + columna + "\") " +
+                                       "REFERENCES \"" + refTable + "\";";
+                        stPG.executeUpdate(ddlFK);
+                    }
+                }
+            }
+        }
+
+        ResultSet rsVistas = stIB.executeQuery(
+            "SELECT rdb$relation_name, rdb$view_source " +
+            "FROM rdb$relations " +
+            "WHERE rdb$system_flag = 0 AND rdb$view_blr IS NOT NULL"
+        );
+
+        while (rsVistas.next()) {
+            String vista = rsVistas.getString(1).trim().toLowerCase();
+            String definicion = rsVistas.getString(2);
+
+            String ddlView = "CREATE OR REPLACE VIEW \"" + vista + "\" AS " + definicion + ";";
+            stPG.executeUpdate(ddlView);
+        }
+
+        JOptionPane.showMessageDialog(null, "Se migro");
+    }
+
+    //mapear los datos
+    private String mapTipo(String tipoIB, int size, int dec) {
+        if (tipoIB.equals("INTEGER")) {
+            return "INTEGER";
+        } else if (tipoIB.equals("SMALLINT")) {
+            return "SMALLINT";
+        } else if (tipoIB.equals("BIGINT")) {
+            return "BIGINT";
+        } else if (tipoIB.equals("FLOAT") || tipoIB.equals("DOUBLE")) {
+            return "DOUBLE PRECISION";
+        } else if (tipoIB.equals("DECIMAL") || tipoIB.equals("NUMERIC")) {
+            if (dec > 0) {
+                return "NUMERIC(" + size + "," + dec + ")";
+            } else {
+                return "NUMERIC(" + size + ")";
+            }
+        } else if (tipoIB.equals("VARCHAR")) {
+            return "VARCHAR(" + size + ")";
+        } else if (tipoIB.equals("CHAR")) {
+            return "CHAR(" + size + ")";
+        } else if (tipoIB.equals("DATE")) {
+            return "DATE";
+        } else if (tipoIB.equals("TIME")) {
+            return "TIME";
+        } else if (tipoIB.equals("TIMESTAMP")) {
+            return "TIMESTAMP";
+        } else if (tipoIB.equals("BLOB")) {
+            return "TEXT";
+        } else {
+            return "TEXT";
+        }
+    }
+    
     public void generarModeloRelacional(JTree jTree1, Connection conn) {
        mxGraph graph = new mxGraph();
         Object parent = graph.getDefaultParent();
@@ -1127,14 +1325,12 @@ public class dbiber extends javax.swing.JFrame {
         try {
             Map<String, Object> mapaTablas = new HashMap<>();
 
-            // Tomar el nodo raíz del JTree
             DefaultMutableTreeNode root = (DefaultMutableTreeNode) jTree1.getModel().getRoot();
             Enumeration<?> nodos = root.children();
 
             while (nodos.hasMoreElements()) {
                 DefaultMutableTreeNode nodo = (DefaultMutableTreeNode) nodos.nextElement();
 
-                // Solo nos interesan las "Tablas"
                 if (nodo.toString().equals("Tablas")) {
                     Enumeration<?> tablas = nodo.children();
 
@@ -1142,7 +1338,6 @@ public class dbiber extends javax.swing.JFrame {
                         DefaultMutableTreeNode nodoTabla = (DefaultMutableTreeNode) tablas.nextElement();
                         String nombreTabla = nodoTabla.toString();
 
-                        // Construir etiqueta con columnas
                         StringBuilder label = new StringBuilder(nombreTabla);
                         Enumeration<?> columnas = nodoTabla.children();
                         while (columnas.hasMoreElements()) {
@@ -1150,14 +1345,12 @@ public class dbiber extends javax.swing.JFrame {
                             label.append("\n").append(col.toString());
                         }
 
-                        // Crear nodo visual en el diagrama (sin preocuparnos por x,y)
                         Object v1 = graph.insertVertex(parent, null, label.toString(), 20, 20, 180, 200);
                         mapaTablas.put(nombreTabla, v1);
                     }
                 }
             }
 
-            // Dibujar relaciones con las Foreign Keys
             DatabaseMetaData meta = conn.getMetaData();
             for (String tabla : mapaTablas.keySet()) {
                 ResultSet fk = meta.getImportedKeys(null, null, tabla);
@@ -1243,6 +1436,8 @@ public class dbiber extends javax.swing.JFrame {
     private javax.swing.JLabel las;
     private javax.swing.JLabel las1;
     private javax.swing.JLabel las2;
+    private javax.swing.JLabel migrar_txt;
+    private javax.swing.JLabel migraxion;
     private javax.swing.JLabel mr_texto;
     private javax.swing.JLabel new_connection;
     private javax.swing.JLabel nueva_label;
